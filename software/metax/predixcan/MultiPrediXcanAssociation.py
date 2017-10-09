@@ -5,6 +5,7 @@ from patsy import dmatrices
 import statsmodels.api as sm
 
 from .. import Exceptions
+from ..misc import Math
 
 class Context(object):
     def __init__(self): raise Exceptions.ReportableException("Tried to instantiate abstract Multi Tissue PrediXcan context")
@@ -99,30 +100,43 @@ def _acquire(gene, context):
 
     return model_keys, e_
 
+def _acquire_2(gene, context):
+    model_keys, e_ = _acquire(gene, context)
+    e_ = e_.apply(Math.standardize, axis=0)
+    return model_keys, e_
+
 def _design_matrices(e_, keys, context):
     formula = "pheno ~ {}".format(" + ".join(keys))
+    y, X = dmatrices(formula, data=e_, return_type="dataframe")
+    return y, X
+
+def _design_matrices_2(e_, keys, context):
+    formula = "pheno ~ {}".format(" + ".join(keys)) + " - 1"
     y, X = dmatrices(formula, data=e_, return_type="dataframe")
     return y, X
 
 def _pvalues(result, context):
     return  result.pvalues[result.pvalues.index[1:]]
 
+def _pvalues_2(result, context):
+    return  result.pvalues
+
 def multi_predixcan_association(gene_, context):
     gene, pvalue, n_models, n_samples, p_i_best, m_i_best, p_i_worst,  m_i_worst, status = None, None, None, None, None, None, None, None, None
     gene = gene_
 
-    model_keys, e_ = _acquire(gene_, context)
+    model_keys, e_ = _acquire_2(gene_, context)
     n_models = len(model_keys)
 
     try:
-        y, X = _design_matrices(e_, model_keys, context)
+        y, X = _design_matrices_2(e_, model_keys, context)
         specifics =  _mode[context.get_mode()]
         model = specifics[K_METHOD](y, X)
         result = specifics[K_FIT](model)
 
         n_samples = e_.shape[0]
 
-        p_i_ = _pvalues(result, context)
+        p_i_ = _pvalues_2(result, context)
         p_i_best = p_i_.min()
         m_i_best = p_i_.idxmin()
         p_i_worst = p_i_.max()
