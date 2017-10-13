@@ -7,6 +7,7 @@ from numpy import dot as _dot, diag as _diag
 import statsmodels.api as sm
 
 from .. import Exceptions
+from ..misc import Math
 
 class Context(object):
     def __init__(self): raise Exceptions.ReportableException("Tried to instantiate abstract Multi Tissue PrediXcan context")
@@ -117,7 +118,13 @@ def _pca_data(e_, model_keys):
     #numpy.svd can't handle typical data size in UK Biobank. So we do PCA through the covariance matrix
     # That is: we compute ths SVD of a covariance matrix, and use those coefficients to get the SVD of input data
     # Shamelessly designed from https://stats.stackexchange.com/questions/134282/relationship-between-svd-and-pca-how-to-use-svd-to-perform-pca
-    Xc = [e_[x]-numpy.mean(e_[x]) for x in model_keys]
+    # Normalized data so that it's the correlation, and congruent with Summary-Based approach
+    Xc = []
+    for x in model_keys:
+        x_ = Math.standardize(e_[x])
+        if x_ is None:
+            continue
+        Xc.append(x_)
     k = numpy.cov(Xc)
     u, s, vt = numpy.linalg.svd(k)
     # we want to keep only those components with significant variance, to reduce dimensionality
