@@ -5,10 +5,13 @@ import unittest
 
 from metax import Exceptions
 from metax import MatrixManager
+from metax import MatrixManager2
 D = MatrixManager.GENE_SNP_COVARIANCE_DEFINITION
 
 import cov_data
 import SampleData
+
+
 
 class TestMatrixManager(unittest.TestCase):
 
@@ -71,6 +74,52 @@ class TestMatrixManager(unittest.TestCase):
         with self.assertRaises(Exceptions.InvalidArguments) as ctx:
             snps, cov = m.get("C", ["rs100", "rs12718973"])
         self.assertTrue("whitelist" in ctx.exception.message)
+
+        snps, cov = m.get("B")
+        i = [0,2,3]
+        j = [1,4]
+        i_ = [snps[a] for a in i]
+        j_ = [snps[b] for b in j]
+        i__ = [[a] for a in i]
+        j__ = j
+        actual = m.get_2("B", i_, j_)[2]
+        expected = numpy.matrix(cov_data.COV_B)[i__, j__]
+        numpy.testing.assert_array_almost_equal(actual, expected)
+
+    def test_from_data_2(self):
+        s = SampleData.dataframe_from_covariance(SampleData.sample_covariance_s_1())
+        m = MatrixManager2.MatrixManager2(s, D)
+
+        snps, cov = m.get("A")
+        self.assertEqual(snps, cov_data.SNPS_A_SORTED)
+        numpy.testing.assert_array_almost_equal(cov, cov_data.COV_A_SORTED)
+
+        snps, cov = m.get("B")
+        self.assertEqual(snps, cov_data.SNPS_B_SORTED)
+        numpy.testing.assert_array_almost_equal(cov, cov_data.COV_B_SORTED)
+
+        snps, cov = m.get("C")
+        self.assertEqual(snps, cov_data.SNPS_C_SORTED)
+        numpy.testing.assert_array_almost_equal(cov, cov_data.COV_C_SORTED)
+
+        snps, cov = m.get("C", ['rs100', 'rs101', 'rs102'])
+        self.assertEqual(snps, cov_data.SNPS_C_SORTED)
+        numpy.testing.assert_array_almost_equal(cov, cov_data.COV_C_SORTED)
+
+        with self.assertRaises(Exceptions.InvalidArguments) as ctx:
+            snps, cov = m.get("C", ["rs100", "rs12718973"])
+        self.assertTrue("whitelist" in ctx.exception.message)
+
+        snps, cov = m.get("B")
+        i = [0,2,3]
+        j = [1,4]
+        i_ = [snps[a] for a in i]
+        j_ = [snps[b] for b in j]
+        i__ = [[a] for a in i]
+        j__ = j
+        actual = m.get_2("B", i_, j_)[2]
+        expected = numpy.matrix(cov_data.COV_B)[i__, j__]
+        numpy.testing.assert_array_almost_equal(actual, expected)
 
     def test_flatten(self):
         labels = cov_data.SNPS_ENSG00000183742_8_w

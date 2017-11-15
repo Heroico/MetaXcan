@@ -47,8 +47,6 @@ def _build_data(d, definition):
         id1 = t[ID1]
         id2 = t[ID2]
         value = t[VALUE]
-        if value == "NA":
-            continue
 
         m = r[model]
         if not id1 in m: m[id1] = {}
@@ -70,6 +68,8 @@ def _get(data, key, whitelist=None, strict_whitelist=True):
     if whitelist:
         ids = [x for x in ids if x in whitelist]
 
+    ids = _cleared_snps(d, ids)
+
     covariance_matrix = MatrixManager._to_matrix(d, ids)
     return ids, covariance_matrix
 
@@ -78,10 +78,24 @@ def _get_2(data, key, id_1, id_2):
         return None,None
 
     d = data[key]
-    snps = sorted(d.keys())
+    snps = _cleared_snps(d, d.keys())
     _snps = set(snps)
 
     is1 = sorted([x for x in id_1 if x in _snps])
     is2 = sorted([x for x in id_2 if x in _snps])
     matrix = MatrixManager._to_matrix(d, is1, is2)
     return is1, is2, matrix
+
+def _cleared_snps(d, snps):
+    cleared=[]
+    for snp_i in snps:
+        d_ = d[snp_i]
+        _is = False
+        for snp_j, v in d_.iteritems():
+            if v is None: continue
+            if v is 'NA': continue
+            _is=True
+            break
+        if _is:
+            cleared.append(snp_i)
+    return cleared
