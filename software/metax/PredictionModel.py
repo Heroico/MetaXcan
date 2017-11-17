@@ -275,7 +275,7 @@ def _prepare_models_2(models):
     return r, rsids, rsid_to_genes
 
 ###############################################################################
-def load_model_manager(path, trim_ensemble_version=False, Klass=ModelManager):
+def load_model_manager(path, trim_ensemble_version=False, Klass=ModelManager, preprocess_models=None):
 
     def _get_models(paths, trim_ensemble_version=False):
         logging.log(9, "preloading models")
@@ -286,6 +286,10 @@ def load_model_manager(path, trim_ensemble_version=False, Klass=ModelManager):
             w["model"] = k
         _m = [x.weights for x in _m.values()]
         models = pandas.concat(_m)
+
+        if preprocess_models:
+            models = preprocess_models(models)
+
         if trim_ensemble_version:
             k = models.gene.str.split(".").str.get(0)
             if len(set(k)) != len(set(models.gene)):

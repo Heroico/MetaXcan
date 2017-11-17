@@ -6,8 +6,8 @@ from .. import MatrixManager
 
 ###############################################################################
 class GeneExpressionMatrixManager(object):
-    def __init__(self, snp_covariance, model_manager):
-        self.snp_covariance_manager = MatrixManager2.MatrixManager2(snp_covariance, MatrixManager.GENE_SNP_COVARIANCE_DEFINITION)
+    def __init__(self, snp_covariance, model_manager, MatrixManagerKlass=MatrixManager2.MatrixManager2):
+        self.snp_covariance_manager = MatrixManagerKlass(snp_covariance, MatrixManager.GENE_SNP_COVARIANCE_DEFINITION)
         self.model_manager = model_manager
 
     def get(self, gene, tissues):
@@ -47,7 +47,7 @@ def _build_matrix_entries(gene, models, matrix_manager, tissues, variances, coef
     return coefs, _tissues
 
 def _get_variances(models, matrix_manager, gene):
-    tissues = models.index.get_level_values(0).values
+    tissues = sorted(set(models.index.get_level_values(0).values))
     variances = {t:_get_variance(models, matrix_manager, gene, t) for t in tissues}
     variances = {k:v for k,v in variances.iteritems() if v is not None}
     return variances
@@ -97,8 +97,8 @@ def _get_coef(gene, models,  matrix_manager, variances, t1, t2):
 # Like the above but faster and dirtier
 class _GeneExpressionMatrixManager(object):
     """Like 'GeneExpressionMatrixManager', but relying on faster implementation."""
-    def __init__(self, snp_covariance, model_manager):
-        self.snp_covariance_manager = MatrixManager2.MatrixManager2(snp_covariance, MatrixManager.GENE_SNP_COVARIANCE_DEFINITION)
+    def __init__(self, snp_covariance, model_manager, MatrixManagerKlass=MatrixManager2.MatrixManager2):
+        self.snp_covariance_manager = MatrixManagerKlass(snp_covariance, MatrixManager.GENE_SNP_COVARIANCE_DEFINITION)
         self.model_manager = model_manager
 
     def get(self, gene, tissues):

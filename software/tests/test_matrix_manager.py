@@ -11,8 +11,6 @@ D = MatrixManager.GENE_SNP_COVARIANCE_DEFINITION
 import cov_data
 import SampleData
 
-
-
 class TestMatrixManager(unittest.TestCase):
 
     def test_invalid_data(self):
