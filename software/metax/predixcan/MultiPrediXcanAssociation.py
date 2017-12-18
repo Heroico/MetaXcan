@@ -3,6 +3,7 @@ import pandas
 
 from patsy import dmatrices
 import numpy
+from scipy import stats
 from numpy import dot as _dot, diag as _diag
 import statsmodels.api as sm
 
@@ -32,6 +33,7 @@ class MTPF(object):
     MAX_EIGEN=10
     MIN_EIGEN=11
     MIN_EIGEN_KEPT=12
+    P_CHI2=13
 
     K_GENE = "gene"
     K_PVALUE = "pvalue"
@@ -46,9 +48,10 @@ class MTPF(object):
     K_MAX_EIGEN="max_eigen"
     K_MIN_EIGEN = "min_eigen"
     K_MIN_EIGEN_KEPT = "min_eigen_kept"
+    K_P_CHI2="p_chi2"
 
     order=[(GENE,K_GENE), (PVALUE, K_PVALUE), (N_MODELS,K_N_MODELS), (N_SAMPLES, K_N_SAMPLES), (BEST_GWAS_P, K_BEST_GWAS_P), (BEST_GWAS_M, K_BEST_GWAS_M), (WORST_GWAS_P, K_WORST_GWAS_P), (WORST_GWAS_M, K_WORST_GWAS_M),
-           (STATUS, K_STATUS), (N_USED, K_N_USED), (MAX_EIGEN,K_MAX_EIGEN), (MIN_EIGEN, K_MIN_EIGEN), (MIN_EIGEN_KEPT,K_MIN_EIGEN_KEPT)]
+           (STATUS, K_STATUS), (N_USED, K_N_USED), (MAX_EIGEN,K_MAX_EIGEN), (MIN_EIGEN, K_MIN_EIGEN), (MIN_EIGEN_KEPT,K_MIN_EIGEN_KEPT), (P_CHI2, K_P_CHI2)]
 
 ########################################################################################################################
 class MTPStatus(object):
@@ -146,7 +149,7 @@ def _pca_data(e_, model_keys, pc_filter):
     return pca_data, pca_keys, numpy.max(s), numpy.min(s), numpy.min(s[selected])
 
 def multi_predixcan_association(gene_, context):
-    gene, pvalue, n_models, n_samples, p_i_best, m_i_best, p_i_worst,  m_i_worst, status, n_used, max_eigen, min_eigen, min_eigen_kept = None, None, None, None, None, None, None, None, None, None, None, None, None
+    gene, pvalue, n_models, n_samples, p_i_best, m_i_best, p_i_worst,  m_i_worst, status, n_used, max_eigen, min_eigen, min_eigen_kept, p_chi2 = None, None, None, None, None, None, None, None, None, None, None, None, None, None
     gene = gene_
 
     model_keys, e_ = _acquire(gene_, context)
@@ -163,19 +166,21 @@ def multi_predixcan_association(gene_, context):
         result = specifics[K_FIT](model)
 
         n_samples = e_.shape[0]
-
         p_i_ = _pvalues(result, context)
         p_i_best = p_i_.min()
         m_i_best = p_i_.idxmin()
         p_i_worst = p_i_.max()
         m_i_worst = p_i_.idxmax()
 
+        t = result.tvalues[1:]
+        p_chi2 = stats.chi2.sf(numpy.sum(t**2), len(t))
+
         pvalue = specifics[K_PVALUE](result)
         status = specifics[K_STATUS](result)
     except Exception as ex:
         status = ex.message.replace(" ", "_").replace(",", "_")
 
-    return gene, pvalue, n_models, n_samples, p_i_best, m_i_best, p_i_worst,  m_i_worst, status, n_used, max_eigen, min_eigen, min_eigen_kept
+    return gene, pvalue, n_models, n_samples, p_i_best, m_i_best, p_i_worst,  m_i_worst, status, n_used, max_eigen, min_eigen, min_eigen_kept, p_chi2
 
 def dataframe_from_results(results, context):
     results = zip(*results)
